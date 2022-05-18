@@ -165,7 +165,7 @@ class PrepilotExperimentBuilder(AbstractExperimentBuilder):
             for group_size in self.group_sizes:
                 found_min_inject_flg = False
                 found_max_inject_flg = False
-                for inject in self.experiment_params.injects[max_found_inject_ind:]:
+                for inject in sorted(self.experiment_params.injects[max_found_inject_ind:], reverse=True):
                     if(found_min_inject_flg and found_max_inject_flg):
                         continue
                     else:
