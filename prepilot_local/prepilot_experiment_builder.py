@@ -9,6 +9,9 @@ from prepilot_local.abstract_experiment_builder import AbstractExperimentBuilder
 from prepilot_local.prepilot_split_builder import PrepilotSplitBuilder
 from prepilot_local.params import PrepilotParams
 from analysis.stat_test import PeriodStatTest
+from analysis.abtest import ABtest
+from fastcore.transform import Pipeline
+from copy import deepcopy
 
 
 class PrepilotExperimentBuilder(AbstractExperimentBuilder):
@@ -17,6 +20,7 @@ class PrepilotExperimentBuilder(AbstractExperimentBuilder):
 
     def __init__(self,
                  guests: DataFrame,
+                 abtest_params: str, #заглушка, должны быть параметры стат теста(pydantic как experiment_params)
                  experiment_params: PrepilotParams,
                  stratification_params: SplitBuilderParams):
         """
@@ -26,9 +30,10 @@ class PrepilotExperimentBuilder(AbstractExperimentBuilder):
 
         """
         super().__init__(guests, experiment_params)
+        self.abtest_params = abtest_params
         self.stratification_params = stratification_params
         self._number_of_decimals = 10
-        
+        #self._pipeline = Pipeline(self.experiment_params.experiment_pipeline)
   
     def _calc_buckets(self, X):
         #подходит только если метрика в бутсрапе среднее, нужно переделать на моды(в том числе исправить в бутсрапе)
@@ -63,18 +68,20 @@ class PrepilotExperimentBuilder(AbstractExperimentBuilder):
         else:
             target = guests_with_splits[guests_with_splits[split_column] == 1][metric_col].values
         
-        if use_buckets:
-            row_dict.update(PeriodStatTest.buckets_calculate_effect(self.experiment_params.bootstrap_metric, 
-                                                                    target, control, 
-                                                                    self.stat_test_params,
-                                                                    self.experiment_params.n_buckets))
+        #if use_buckets:
+        #    row_dict.update(PeriodStatTest.buckets_calculate_effect(self.experiment_params.bootstrap_metric, 
+        #                                                            target, control, 
+        #                                                            self.stat_test_params,
+        #                                                            self.experiment_params.n_buckets))
 
         #stat_test = PeriodStatTest(target, control, "", self.stat_test_params)
-        else:
-            row_dict.update(PeriodStatTest.bootstrap_calculate_effect(self.experiment_params.bootstrap_metric, 
-                                                                      target, control, 
-                                                                      self.stat_test_params))
+        #else:
+        #    row_dict.update(PeriodStatTest.bootstrap_calculate_effect(self.experiment_params.bootstrap_metric, 
+        #                                                              target, control, 
+        #                                                              self.stat_test_params))
 
+        abtest = ABtest(self.abtest_params)# в абтест нужно передавать котроль и тест(обязательно), либо менять парметры через сеттер
+        row_dict.update(self.experiment_params.experiment_pipeline((abtest)))
         return pd.DataFrame(row_dict)
 
     def _fill_passed_experiments(self, aggregated_df):

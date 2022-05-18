@@ -2,6 +2,8 @@ from typing import Dict, List, Any, Union, Optional, Callable, Tuple
 from pydantic import Field, root_validator
 from pydantic.dataclasses import dataclass
 import numpy as np
+from analysis.abtest import ABtest
+from fastcore.transform import Pipeline
 
 
 @dataclass
@@ -25,11 +27,25 @@ class PrepilotParams:
     min_group_size: int
     max_group_size: int
     step: int
-    bootstrap_metric: Optional[Callable[[Any], float]] = np.mean
+    #experiment_pipeline: List[Callable]
+    variance_reduction: Optional[Callable[[ABtest], ABtest]] = None
+    use_buckets: bool = False
+    experiment_pipeline: Any = None
+    stat_test: Callable[[ABtest], Any] = ABtest.bootstrap
+    bootstrap_metric: Callable[[Any], float] = np.mean
     iterations_number: int = 10
     n_buckets: int = 1000
     max_beta_score: float = 0.2
     min_beta_score: float = 0.05
+
+    def __post_init__(self):
+        if self.use_buckets:
+            transformations = [self.variance_reduction, ABtest.buckets, self.stat_test]
+        else:
+            transformations = [self.variance_reduction, self.stat_test]
+        transformations = list(filter(None, transformations))
+        self.experiment_pipeline = Pipeline(transformations)
+
 
     @root_validator
     @classmethod
