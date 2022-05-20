@@ -47,8 +47,8 @@ class PrepilotSplitBuilder():
         Returns: pandas DataFrame with columns for splits and injected metrics
 
         """
-        df_with_injects = self.calc_injected_merics(self.guests)
-        prepilot_df = self.multliple_split(df_with_injects)
+        #df_with_injects = self.calc_injected_merics(self.guests)
+        prepilot_df = self.multliple_split(self.guests)
         return prepilot_df
 
     def _update_strat_params(self):

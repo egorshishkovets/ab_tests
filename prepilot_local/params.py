@@ -1,8 +1,8 @@
-from typing import Dict, List, Any, Union, Optional, Callable, Tuple
+from typing import List, Any, Optional, Callable
 from pydantic import Field, root_validator
 from pydantic.dataclasses import dataclass
 import numpy as np
-from analysis.abtest import ABtest
+from analysis.abtest import ABTest
 from fastcore.transform import Pipeline
 
 
@@ -28,10 +28,10 @@ class PrepilotParams:
     max_group_size: int
     step: int
     #experiment_pipeline: List[Callable]
-    variance_reduction: Optional[Callable[[ABtest], ABtest]] = None
+    variance_reduction: Optional[Callable[[ABTest], ABTest]] = None
     use_buckets: bool = False
-    experiment_pipeline: Any = None
-    stat_test: Callable[[ABtest], Any] = ABtest.bootstrap
+    transformations: Any = None
+    stat_test: Callable[[ABTest], Any] = ABTest.test_hypothesis_boot_confint
     bootstrap_metric: Callable[[Any], float] = np.mean
     iterations_number: int = 10
     n_buckets: int = 1000
@@ -40,11 +40,11 @@ class PrepilotParams:
 
     def __post_init__(self):
         if self.use_buckets:
-            transformations = [self.variance_reduction, ABtest.buckets, self.stat_test]
+            transformations = [self.variance_reduction, ABTest.bucketing]
         else:
             transformations = [self.variance_reduction, self.stat_test]
         transformations = list(filter(None, transformations))
-        self.experiment_pipeline = Pipeline(transformations)
+        self.transformations = Pipeline(transformations)
 
 
     @root_validator
